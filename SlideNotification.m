@@ -7,40 +7,30 @@
 #import "SlideNotification.h"
 
 
-
-
-@interface SlideNotification () {
-    ActionBlock actionBlock_;
-}
-
-@property (nonatomic, copy) NSString *title;
-@property (nonatomic) BOOL isHidden;
-
-
-- (void)callActionBlock_:(id)sender;
-- (void)orientationChanged_:(NSNotification *)notification;
-
-@end
-
-int8_t height = 44.0;
-SlideNotificationColor color = Blue;
-
-static const float _short = 1;
-static const float _long = 3;
-
-static SlideNotification* notification = nil;
-static NSMutableArray* notifications = nil;
-static float duration_ = _short;
-
-
-
-
 @implementation SlideNotification
 
 @synthesize title = title_;
 @synthesize isHidden = isHidden_;
 
 
+static const float _short = 1;
+static const float _long = 3;
+
+static SlideNotification* notification = nil;
+static NSMutableArray* notifications = nil;
+static float duration_ = 1;
+
+
+
+-(id)init
+{
+    if (self = [super init])
+    {
+        color = Blue;
+        height = 44.0;
+    }
+    return self;
+}
 
 
 - (id)initWithTitle:(NSString *)title{
@@ -70,6 +60,24 @@ static float duration_ = _short;
 }
 
 
+
+-(CGRect)getScreenBoundsForCurrentOrientation
+{
+    UIScreen *screen = [UIScreen mainScreen];
+    CGRect fullScreenRect = screen.bounds; //implicitly in Portrait orientation.
+    
+    if (UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation]))
+    {
+        CGRect temp;
+        temp.size.width = fullScreenRect.size.height;
+        temp.size.height = fullScreenRect.size.width;
+        fullScreenRect = temp;
+    }
+    return fullScreenRect;
+}
+
+
+
 -(void)drawLinearGradient:(CGContextRef) context rect:(CGRect) rect startColor:(CGColorRef)startColor endColor:(CGColorRef)endColor {
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     CGFloat locations[] = { 0.0, 1.0 };
@@ -94,10 +102,9 @@ static float duration_ = _short;
 
 - (void)drawRect:(CGRect)rect
 {
-    
-    CGContextRef context = UIGraphicsGetCurrentContext();
 
     CGRect screenRect = [self getScreenBoundsForCurrentOrientation];
+    
     self.frame = CGRectMake(0.0f, screenRect.size.height-height-20.0f, screenRect.size.width, height);
     
     CGColorRef firstColor, lastColor;
@@ -115,21 +122,23 @@ static float duration_ = _short;
             lastColor = [UIColor colorWithRed:0.0/255.0 green:104.0/255.0 blue:139.0/255.0 alpha:1.0].CGColor;
 			break;
 	}
+    
+     CGContextRef context = UIGraphicsGetCurrentContext();
     [self drawLinearGradient:context rect:self.bounds startColor:firstColor endColor:lastColor];
 
     
-    if (self.title) {
+    if (title_) {
         CGContextSaveGState(context);
         UIFont *titleFont = [UIFont boldSystemFontOfSize:18.0f];
-        CGSize titleSize = [self.title sizeWithFont:titleFont];
+        CGSize titleSize = [title_ sizeWithFont:titleFont];
         CGFloat titlePointY = lround((self.bounds.size.height - titleSize.height) / 2);
         CGFloat titlePointX = lround((self.bounds.size.width - titleSize.width) / 2);
         
         [[UIColor colorWithWhite:0.0 alpha:0.8] set];
-        [self.title drawAtPoint:CGPointMake(titlePointX, titlePointY) withFont:titleFont];
+        [title_ drawAtPoint:CGPointMake(titlePointX, titlePointY) withFont:titleFont];
         
         [[UIColor colorWithWhite:1.0 alpha:0.8] set];
-        [self.title drawAtPoint:CGPointMake(titlePointX, titlePointY + 0.5) withFont:titleFont];
+        [title_ drawAtPoint:CGPointMake(titlePointX, titlePointY + 0.5) withFont:titleFont];
         CGContextRestoreGState(context);
     }
     
@@ -152,7 +161,14 @@ static float duration_ = _short;
 
 - (id)updateTitle:(NSString *)title  actionBlock:(ActionBlock)action
 {
-    self.title = [title copy];
+    if(title_ && title_ !=title ){
+        if(title_){
+            [title_ release];
+        }
+        title_ = [title copy];
+    }else{
+        title_ = nil;
+    }
     [self updateActionBlock:action];
    
     [self setNeedsDisplay];
@@ -260,28 +276,16 @@ static float duration_ = _short;
 {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [[UIDevice currentDevice] endGeneratingDeviceOrientationNotifications];
-        
-    [title_ release];
-        
+    
+    if(title_){
+        [title_ release];
+    }
     [super dealloc];
         
 }
 
 
--(CGRect)getScreenBoundsForCurrentOrientation
-{
-    UIScreen *screen = [UIScreen mainScreen];
-    CGRect fullScreenRect = screen.bounds; //implicitly in Portrait orientation.
-    
-    if (UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation])) 
-    {
-        CGRect temp;
-        temp.size.width = fullScreenRect.size.height;
-        temp.size.height = fullScreenRect.size.width;
-        fullScreenRect = temp;      
-    }    
-    return fullScreenRect;
-}
+
 
 
 

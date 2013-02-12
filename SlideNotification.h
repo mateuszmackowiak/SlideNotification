@@ -17,7 +17,9 @@ typedef enum
 
 
 @interface SlideNotification : UIControl {
-    
+    ActionBlock actionBlock_;
+    SlideNotificationColor color;
+    int8_t height;
 }
 
 @property (nonatomic, copy, readonly) NSString *title;
